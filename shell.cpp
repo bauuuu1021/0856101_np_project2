@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string>
 #include <signal.h>
-#include <sys/wait.h>
 #include <map>
 
 using namespace std;
@@ -16,11 +15,6 @@ extern void execute_cmd(string cmd);
 extern string skip_lead_space(string str);
 long cmd_count;
 map<int, pipe_info> delay_pipe_table;
-
-void waitChildHandler(int signo) {
-    int status;
-    while (waitpid(-1, &status, WNOHANG) > 0);
-}
 
 void printenv(string cmd) {
 
@@ -54,9 +48,8 @@ void setenv(string cmd) {
     }
 }
 
-int main () {
+void shell () {
 
-    signal(SIGCHLD, waitChildHandler);
     setenv("PATH", "bin:.", !0);
     cmd_count = 0;
     delay_pipe_table.clear();

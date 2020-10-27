@@ -5,9 +5,9 @@ CMD_SRC = commands
 CMD = noop number removetag removetag0
 BIN_DIR = bin
 
-all: npshell
+all: np_simple
 
-npshell: shell.cpp pipe.cpp
+np_simple: remote_shell.cpp shell.cpp pipe.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 build_cmd: unix_cmd $(CMD)
@@ -22,5 +22,5 @@ $(CMD): %: $(CMD_SRC)/%.cpp
 
 .PHONY: clean
 clean:
-	rm -rf npshell $(BIN_DIR)
+	rm -rf np_simple $(BIN_DIR)
 
