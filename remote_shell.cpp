@@ -10,7 +10,7 @@
 
 using namespace std;
 
-extern void shell();
+extern void shell(int client);
 
 void waitChildHandler(int signo) {
     int status;
@@ -58,6 +58,9 @@ int main(int argc, char **argv) {
     dup2(client_fd, STDOUT_FILENO);
     dup2(client_fd, STDERR_FILENO);
 
-    shell(); 
+    shell(client_fd);
+
+    close(server_fd);
+    close(client_fd);
 } 
 
