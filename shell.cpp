@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string>
 #include <signal.h>
+#include <string.h>
 #include <map>
 #include <unistd.h>
 
@@ -59,7 +60,9 @@ void shell (int client) {
     char buf[1024] = {0};
     int bufsize = 0;
     cout << "% " << flush;
-    while ((bufsize = read(client, buf, sizeof(buf))) && cmd.compare("exit")) {
+    while ((bufsize = read(client, buf, sizeof(buf))) && strncmp("exit", buf, 4)) {
+
+        if (bufsize == 1)   break;
 
         cmd = string(buf).substr(0, bufsize-2);     // skip '\n' and '\0'
         cmd = skip_lead_space(cmd);         
@@ -81,5 +84,6 @@ void shell (int client) {
         }
 
         cout << "% " << flush;
+        memset(buf, 0, sizeof(buf));
     }
 }
