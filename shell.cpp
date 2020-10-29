@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string>
 #include <signal.h>
-#include <string.h>
 #include <map>
 #include <unistd.h>
 
@@ -50,26 +49,29 @@ void setenv(string cmd) {
     }
 }
 
-void shell (int client) {
+void shell () {
 
     setenv("PATH", "bin:.", !0);
     cmd_count = 0;
     delay_pipe_table.clear();
 
     string cmd, delimiter = " ";
-    char buf[1024] = {0};
-    int bufsize = 0;
     cout << "% " << flush;
-    while ((bufsize = read(client, buf, sizeof(buf))) && strncmp("exit", buf, 4)) {
 
-        if (bufsize == 1)   break;
+    while (getline(cin, cmd)) {
 
-        cmd = string(buf).substr(0, bufsize-2);     // skip '\n' and '\0'
+        for (auto i = 0; i < cmd.size(); i++)
+            if (cmd.at(i) == '\r')  // remove carriage return character
+                cmd = cmd.substr(0, i);
+
         cmd = skip_lead_space(cmd);         
 
         if (!cmd.compare(0, 8, "printenv")) {
             printenv(cmd);
             cmd_count++;
+        }
+        else if (!cmd.compare(0, 4, "exit")) {
+            return;
         }
         else if (!cmd.compare(0, 6, "setenv")) {
             setenv(cmd);
@@ -84,6 +86,5 @@ void shell (int client) {
         }
 
         cout << "% " << flush;
-        memset(buf, 0, sizeof(buf));
     }
 }
