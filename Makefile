@@ -4,10 +4,14 @@ CXXFLAGS = -g
 CMD_SRC = commands
 CMD = noop number removetag removetag0
 BIN_DIR = bin
+SHELLS = np_simple np_single_proc
 
-all: np_simple
+all: $(SHELLS)
 
-np_simple: remote_shell.cpp shell.cpp pipe.cpp
+np_simple: task1.cpp shell.cpp pipe.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+np_single_proc: task2.cpp shell.cpp pipe.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 build_cmd: unix_cmd $(CMD)
@@ -22,5 +26,5 @@ $(CMD): %: $(CMD_SRC)/%.cpp
 
 .PHONY: clean
 clean:
-	rm -rf np_simple $(BIN_DIR)
+	rm -rf $(SHELLS) $(BIN_DIR)
 
