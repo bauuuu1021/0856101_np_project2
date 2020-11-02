@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
         perror("socket failed"); 
         exit(EXIT_FAILURE); 
     } 
- 
+
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) { 
         perror("bind failed"); 
         exit(EXIT_FAILURE); 
@@ -49,18 +49,28 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE); 
     } 
 
-    if ((client_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) { 
-        perror("accept"); 
-        exit(EXIT_FAILURE); 
-    } 
+    while (true) {
+        if ((client_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) { 
+            perror("accept"); 
+            exit(EXIT_FAILURE); 
+        }
 
-    dup2(client_fd, STDIN_FILENO);
-    dup2(client_fd, STDOUT_FILENO);
-    dup2(client_fd, STDERR_FILENO);
+        int std_fileno[3] = {STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO}; 
+        int old_fd[3] = {0};
 
-    shell();
+        for (int i = 0; i < 3; i++) {
+            old_fd[i] = dup(std_fileno[i]);
+            dup2(client_fd, std_fileno[i]);
+        }
+        close(client_fd);
 
+        shell();
+
+        for (int i = 0; i < 3; i++) {
+            dup2(old_fd[i], std_fileno[i]);
+            close(old_fd[i]);
+        }
+    }
     close(server_fd);
-    close(client_fd);
 } 
 
