@@ -30,7 +30,7 @@ int socket_setup(int port) {
         perror("socket failed"); 
         exit(EXIT_FAILURE); 
     } 
- 
+
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) { 
         perror("bind failed"); 
         exit(EXIT_FAILURE); 
@@ -45,7 +45,7 @@ int socket_setup(int port) {
 }
 
 int main(int argc, char **argv) {  
-    
+
     if (argc < 2) {
         cerr << "Usage: " << argv[0] << " [port]\n";
         exit(EXIT_FAILURE);
@@ -56,7 +56,7 @@ int main(int argc, char **argv) {
     // Initial socket settings
     struct sockaddr_in address;
     int server_fd, client_fd, addrlen = sizeof(address); 
-    
+
     server_fd = socket_setup(atoi(argv[1]));
 
     while (true) {
