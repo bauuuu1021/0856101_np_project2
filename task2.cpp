@@ -23,6 +23,7 @@ fd_set readfds;
 int client_fd[MAX_CLIENTS] = {0};
 
 extern void shell();
+extern void yell(int sender, string msg);
 
 int socket_setup(int port) {
 
@@ -92,6 +93,8 @@ void client_query() {
 
         if (FD_ISSET(client_fd[i], &readfds)) { 
 
+            memset(buffer, 0, 1024);
+
             // The socket is closed 
             if ((valread = read(client_fd[i], buffer, 1024)) == 0) {  
                 getpeername(client_fd[i], (struct sockaddr*)&address, (socklen_t*)&addrlen); 
@@ -102,12 +105,9 @@ void client_query() {
                 client_fd[i] = 0; // Mark as 0 to reuse
             } 
 
-            //Echo back the message that came in 
+            // Complete client's query 
             else { 
-                //set the string terminating NULL byte on the end 
-                //of the data read 
-                buffer[valread] = '\0'; 
-                send(client_fd[i], buffer, strlen(buffer), 0); 
+                yell(i, string(buffer));
             } 
         } 
     }

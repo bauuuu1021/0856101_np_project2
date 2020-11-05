@@ -11,7 +11,7 @@ all: $(SHELLS)
 np_simple: task1.cpp shell.cpp pipe.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-np_single_proc: task2.cpp shell.cpp pipe.cpp
+np_single_proc: task2.cpp shell.cpp pipe.cpp user.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 build_cmd: unix_cmd $(CMD)
