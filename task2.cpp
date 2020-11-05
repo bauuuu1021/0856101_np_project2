@@ -12,6 +12,8 @@
 #include <errno.h>
 #include <sys/time.h>
 #include <algorithm>
+#include <string>
+#include <map>
 
 #define MAX_CLIENTS 30
 #define star_divider "****************************************\n"
@@ -19,6 +21,13 @@
 
 using namespace std;
 
+typedef int user_id;
+typedef struct client_info {
+    int socket_id;
+    string name;
+} client_info;
+
+map<user_id, client_info> user_table;
 fd_set readfds;
 int client_fd[MAX_CLIENTS] = {0};
 
@@ -63,10 +72,6 @@ void new_connection(int server) {
             exit(EXIT_FAILURE); 
         } 
 
-        //inform user of socket number - used in send and receive commands 
-        printf("New connection , socket fd is %d , ip is : %s , port : %d\n" , new_socket , inet_ntoa(address.sin_addr) , ntohs 
-                (address.sin_port)); 
-
         // Send new connection greeting message 
         if (send(new_socket, welcome_msg, strlen(welcome_msg), 0) != strlen(welcome_msg)) { 
             perror("send"); 
@@ -75,11 +80,24 @@ void new_connection(int server) {
         // Add new socket to array of sockets 
         for (int i = 0; i < MAX_CLIENTS; i++) { 
             if (!client_fd[i]) { // the slot is empty
-                client_fd[i] = new_socket;
+                client_info tmp;
+                tmp.socket_id = client_fd[i] = new_socket;
+                tmp.name = "(no name)"; 
+                user_table.insert(pair<user_id, client_info>(i, tmp));
 
                 break; 
             } 
-        } 
+        }
+
+        // Broadcast new connection information  
+        string new_conn =   "*** User '(no name)' entered from " + string(inet_ntoa(address.sin_addr)) + \
+                             ":" + to_string(ntohs(address.sin_port)) + " ***\n";  
+        for (const auto &c :client_fd) {
+            send(c, new_conn.c_str(), new_conn.length(), 0);
+        }
+
+        // Send %
+        send(new_socket, "% ", 2, 0);
     }
 }
 
