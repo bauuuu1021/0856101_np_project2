@@ -1,11 +1,11 @@
 #include <signal.h>
 #include <sys/wait.h>
-#include <unistd.h> 
-#include <stdio.h> 
-#include <sys/socket.h> 
-#include <stdlib.h> 
-#include <netinet/in.h> 
-#include <string.h> 
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/socket.h>
+#include <stdlib.h>
+#include <netinet/in.h>
+#include <string.h>
 #include <iostream>
 
 using namespace std;
@@ -17,10 +17,37 @@ void waitChildHandler(int signo) {
     while (waitpid(-1, &status, WNOHANG) > 0);
 }
 
+int socket_setup(int port) {
+
+    struct sockaddr_in address;
+    int server_fd, addrlen = sizeof(address); 
+
+    address.sin_family = AF_INET; 
+    address.sin_addr.s_addr = INADDR_ANY; 
+    address.sin_port = htons(port);
+
+    if (!(server_fd = socket(AF_INET, SOCK_STREAM, 0))) { 
+        perror("socket failed"); 
+        exit(EXIT_FAILURE); 
+    } 
+ 
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) { 
+        perror("bind failed"); 
+        exit(EXIT_FAILURE); 
+    } 
+
+    if (listen(server_fd, 30) < 0) { 
+        perror("listen"); 
+        exit(EXIT_FAILURE); 
+    }
+
+    return server_fd;
+}
+
 int main(int argc, char **argv) {  
     
     if (argc < 2) {
-        cerr << "Usage: ./np_simple [port]\n";
+        cerr << "Usage: " << argv[0] << " [port]\n";
         exit(EXIT_FAILURE);
     }
 
@@ -29,25 +56,8 @@ int main(int argc, char **argv) {
     // Initial socket settings
     struct sockaddr_in address;
     int server_fd, client_fd, addrlen = sizeof(address); 
-
-    address.sin_family = AF_INET; 
-    address.sin_addr.s_addr = INADDR_ANY; 
-    address.sin_port = htons(atoi(argv[1]));
-
-    if (!(server_fd = socket(AF_INET, SOCK_STREAM, 0))) { 
-        perror("socket failed"); 
-        exit(EXIT_FAILURE); 
-    } 
-
-    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) { 
-        perror("bind failed"); 
-        exit(EXIT_FAILURE); 
-    } 
-
-    if (listen(server_fd, 5) < 0) { 
-        perror("listen"); 
-        exit(EXIT_FAILURE); 
-    } 
+    
+    server_fd = socket_setup(atoi(argv[1]));
 
     while (true) {
         if ((client_fd = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) { 
