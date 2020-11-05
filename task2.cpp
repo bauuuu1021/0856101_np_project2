@@ -23,16 +23,16 @@ using namespace std;
 
 typedef int user_id;
 typedef struct client_info {
-    int socket_id;
+    int socket_fd;
     string name;
+    long cmd_count;
 } client_info;
 
 map<user_id, client_info> user_table;
 fd_set readfds;
 int client_fd[MAX_CLIENTS] = {0};
 
-extern void shell();
-extern void yell(int sender, string msg);
+extern void daemon(int sender, string cmd);
 
 int socket_setup(int port) {
 
@@ -81,7 +81,7 @@ void new_connection(int server) {
         for (int i = 0; i < MAX_CLIENTS; i++) { 
             if (!client_fd[i]) { // the slot is empty
                 client_info tmp;
-                tmp.socket_id = client_fd[i] = new_socket;
+                tmp.socket_fd = client_fd[i] = new_socket;
                 tmp.name = "(no name)"; 
                 user_table.insert(pair<user_id, client_info>(i, tmp));
 
@@ -125,7 +125,7 @@ void client_query() {
 
             // Complete client's query 
             else { 
-                yell(i, string(buffer));
+                daemon(i, string(buffer));
             } 
         } 
     }
