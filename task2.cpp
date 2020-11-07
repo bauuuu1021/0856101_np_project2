@@ -33,6 +33,7 @@ fd_set readfds;
 int client_fd[MAX_CLIENTS] = {0};
 
 extern void daemon(int sender, string cmd);
+extern void broadcast(string msg);
 
 int socket_setup(int port) {
 
@@ -92,10 +93,8 @@ void new_connection(int server) {
         // Broadcast new connection information  
         string new_conn =   "*** User '(no name)' entered from " + string(inet_ntoa(address.sin_addr)) + \
                              ":" + to_string(ntohs(address.sin_port)) + " ***\n";  
-        for (const auto &c :client_fd) {
-            send(c, new_conn.c_str(), new_conn.length(), 0);
-        }
-
+        broadcast(new_conn);
+        
         // Send %
         send(new_socket, "% ", 2, 0);
     }

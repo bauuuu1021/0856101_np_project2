@@ -25,6 +25,12 @@ extern string skip_lead_space(string str);
 extern void execute_cmd(string cmd);
 extern map<user_id, client_info> user_table;
 
+void broadcast(string msg) {
+    for (const auto &c: client_fd)
+        if (c)
+            send(c, msg.c_str(), msg.length(), 0);
+}
+
 void who(int sender_id) {
 
     cout << "<ID>\t<nickname>\t<IP:port>\t<indicate me>\n" << flush;
@@ -50,10 +56,7 @@ void yell(int sender_id, string msg) {
     msg = msg + "\n";
 
     string name = "*** " + user.name + " yelled ***: ";
-    for (const auto &c: client_fd) {
-        send(c, name.c_str(), name.length(), 0);
-        send(c, msg.c_str(), msg.length(), 0);
-    }
+    broadcast(name + msg);
 }
 
 void rename(int sender_id, string name) {
@@ -66,9 +69,7 @@ void rename(int sender_id, string name) {
 
     string msg = "*** User from " + string(inet_ntoa(address.sin_addr)) \
                   + ":" + to_string(ntohs(address.sin_port)) + " is named '" + name + "'. ***\n";
-    for (const auto &c: client_fd) {
-        send(c, msg.c_str(), msg.length(), 0);
-    }
+    broadcast(msg);
 }
 
 void daemon(int sender_id, string cmd) {
