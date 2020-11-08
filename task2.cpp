@@ -37,7 +37,7 @@ map<user_id, client_info> user_table;
 fd_set readfds;
 int client_fd[MAX_CLIENTS] = {0};
 
-extern void shell(int sender, string cmd);
+extern void shell(user_id sender, string cmd);
 extern void broadcast(string msg);
 
 int socket_setup(int port) {

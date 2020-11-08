@@ -39,7 +39,7 @@ void broadcast(string msg) {
             send(c, msg.c_str(), msg.length(), 0);
 }
 
-void who(int sender_id) {
+void who(user_id sender_id) {
 
     cout << "<ID>\t<nickname>\t<IP:port>\t<indicate me>\n" << flush;
 
@@ -60,7 +60,7 @@ void who(int sender_id) {
     }
 }
 
-void yell(int sender_id, string msg) {
+void yell(user_id sender_id, string msg) {
 
     auto user = user_table.find(sender_id)->second;
     msg = msg + "\n";
@@ -69,7 +69,20 @@ void yell(int sender_id, string msg) {
     broadcast(name + msg);
 }
 
-void rename(int sender_id, string name) {
+void tell(user_id sender_id, user_id receiver_id, string msg) {
+
+    if (user_table.find(receiver_id) == user_table.end()) {
+        string err = "*** Error: user #" + to_string(receiver_id) + " does not exist yet. ***\n";
+        cerr << err << flush;
+        return;
+    }
+
+    string prefix = "*** " + user_table.find(sender_id)->second.name + " told you ***: ";
+    msg = prefix + msg + "\n";
+    send(user_table.find(receiver_id)->second.socket_fd, msg.c_str(), msg.length(), 0);
+}
+
+void rename(user_id sender_id, string name) {
     std::map<user_id, client_info>::iterator it = user_table.find(sender_id);
     it->second.name = name = skip_lead_space(name);
 
@@ -82,7 +95,7 @@ void rename(int sender_id, string name) {
     broadcast(msg);
 }
 
-void shell(int sender_id, string cmd) {
+void shell(user_id sender_id, string cmd) {
 
     map<user_id, client_info>::iterator it = user_table.find(sender_id);
 
@@ -126,6 +139,13 @@ void shell(int sender_id, string cmd) {
     else if (!cmd.compare(0, 4, "yell")) {
         string msg = cmd.substr(5);
         yell(sender_id, msg);
+        it->second.cmd_count++;
+    }
+    else if (!cmd.compare(0, 4, "tell")) {
+        string delimiter = " ", msg = skip_lead_space(cmd.substr(5));
+        int pos = msg.find(delimiter);
+        int receiver_id = stoi(msg.substr(0, pos));
+        tell(sender_id, receiver_id, msg.substr(pos + 1));
         it->second.cmd_count++;
     }
     else if (!cmd.compare(0, 4, "name")) {
