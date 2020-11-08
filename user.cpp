@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <string.h>
 
 #define MAX_CLIENTS 30
 
@@ -45,6 +46,8 @@ void who(int sender_id) {
     for (std::map<user_id, client_info>::iterator it = user_table.begin(); it != user_table.end(); ++it) {
         struct sockaddr_in address;
         int addrlen = sizeof(address);
+
+        memset(&address, 0, sizeof(address));
         getpeername(it->second.socket_fd, (struct sockaddr*)&address, (socklen_t*)&addrlen);
 
         cout << it->first << "\t" << it->second.name << "\t" << inet_ntoa(address.sin_addr) \
@@ -79,7 +82,7 @@ void rename(int sender_id, string name) {
     broadcast(msg);
 }
 
-void daemon(int sender_id, string cmd) {
+void shell(int sender_id, string cmd) {
 
     map<user_id, client_info>::iterator it = user_table.find(sender_id);
 
@@ -99,7 +102,17 @@ void daemon(int sender_id, string cmd) {
         printenv(cmd);
         it->second.cmd_count++;
     }
-    else if (!cmd.compare(0, 4, "exit")) {
+    else if (!cmd.compare(0, 4, "exit")) { 
+        string msg = "*** User '" + it->second.name + "' left. ***\n";
+        broadcast(msg);
+        close(it->second.socket_fd);
+        user_table.erase(it); 
+        client_fd[sender_id] = 0; // Mark as 0 to reuse
+
+        // TODO: check if needed
+        dup2(old_stdout, STDOUT_FILENO);
+        dup2(old_stderr, STDERR_FILENO);
+
         return;
     }
     else if (!cmd.compare(0, 6, "setenv")) {

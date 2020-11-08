@@ -37,7 +37,7 @@ map<user_id, client_info> user_table;
 fd_set readfds;
 int client_fd[MAX_CLIENTS] = {0};
 
-extern void daemon(int sender, string cmd);
+extern void shell(int sender, string cmd);
 extern void broadcast(string msg);
 
 int socket_setup(int port) {
@@ -119,18 +119,18 @@ void client_query() {
             memset(buffer, 0, 1024);
 
             // The socket is closed 
-            if ((valread = read(client_fd[i], buffer, 1024)) == 0) {  
-                getpeername(client_fd[i], (struct sockaddr*)&address, (socklen_t*)&addrlen); 
-                printf("Host disconnected , ip %s , port %d \n" , 
-                        inet_ntoa(address.sin_addr), ntohs(address.sin_port)); 
-
+            if ((valread = read(client_fd[i], buffer, 1024)) == 0) { 
+                map<user_id, client_info>::iterator it = user_table.find(i); 
+                string msg = "*** User '" + it->second.name + "' left. ***\n";
+                broadcast(msg);
+                user_table.erase(it);  
                 close(client_fd[i]); 
                 client_fd[i] = 0; // Mark as 0 to reuse
             } 
 
             // Complete client's query 
             else { 
-                daemon(i, string(buffer));
+                shell(i, string(buffer));
             } 
         } 
     }
