@@ -22,10 +22,15 @@
 using namespace std;
 
 typedef int user_id;
+typedef struct pipe_info {
+    int read_fd;
+    int write_fd;
+} pipe_info;
 typedef struct client_info {
     int socket_fd;
     string name;
     long cmd_count;
+    map<int, pipe_info> delay_pipe_table;
 } client_info;
 
 map<user_id, client_info> user_table;
@@ -84,6 +89,7 @@ void new_connection(int server) {
                 client_info tmp;
                 tmp.socket_fd = client_fd[i] = new_socket;
                 tmp.name = "(no name)"; 
+                tmp.delay_pipe_table.clear();
                 user_table.insert(pair<user_id, client_info>(i, tmp));
 
                 break; 

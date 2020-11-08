@@ -12,12 +12,19 @@
 using namespace std;
 
 typedef int user_id;
+typedef struct pipe_info {
+    int read_fd;
+    int write_fd;
+} pipe_info;
 typedef struct client_info {
     int socket_fd;
     string name;
     long cmd_count;
+    map<int, pipe_info> delay_pipe_table;
 } client_info;
 
+extern long cmd_count;
+extern map<int, pipe_info> delay_pipe_table;
 extern int client_fd[MAX_CLIENTS];
 extern void printenv(string cmd);
 extern void setenv(string cmd);
@@ -117,7 +124,12 @@ void daemon(int sender_id, string cmd) {
         ;
     }
     else {
+        cmd_count = it->second.cmd_count;
+        delay_pipe_table = it->second.delay_pipe_table;
+        
         execute_cmd(cmd);
+
+        it->second.delay_pipe_table = delay_pipe_table;
         it->second.cmd_count++;
     }
 
