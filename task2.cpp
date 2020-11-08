@@ -112,25 +112,25 @@ void client_query() {
     int valread, addrlen = sizeof(address);  		
     char buffer[1024];
 
-    for (int i = 0; i < MAX_CLIENTS; i++) {
+    for (user_id id = 0; id < MAX_CLIENTS; id++) {
 
-        if (FD_ISSET(client_fd[i], &readfds)) { 
+        if (FD_ISSET(client_fd[id], &readfds)) { 
 
             memset(buffer, 0, 1024);
 
             // The socket is closed 
-            if ((valread = read(client_fd[i], buffer, 1024)) == 0) { 
-                map<user_id, client_info>::iterator it = user_table.find(i); 
+            if ((valread = read(client_fd[id], buffer, 1024)) == 0) { 
+                map<user_id, client_info>::iterator it = user_table.find(id); 
                 string msg = "*** User '" + it->second.name + "' left. ***\n";
                 broadcast(msg);
                 user_table.erase(it);  
-                close(client_fd[i]); 
-                client_fd[i] = 0; // Mark as 0 to reuse
+                close(client_fd[id]); 
+                client_fd[id] = 0; // Mark as 0 to reuse
             } 
 
             // Complete client's query 
             else { 
-                shell(i, string(buffer));
+                shell(id, string(buffer));
             } 
         } 
     }
@@ -153,10 +153,10 @@ int main(int argc , char **argv) {
         max_sd = server_fd; 
 
         // Add client sockets into read list
-        for (int i = 0 ; i < MAX_CLIENTS; i++) {           
-            if (client_fd[i] > 0)
-                FD_SET(client_fd[i], &readfds);
-            max_sd = max(client_fd[i], max_sd); 
+        for (user_id id = 0 ; id < MAX_CLIENTS; id++) {           
+            if (client_fd[id] > 0)
+                FD_SET(client_fd[id], &readfds);
+            max_sd = max(client_fd[id], max_sd); 
         } 
 
         activity = select(max_sd + 1, &readfds, NULL, NULL, NULL); 
