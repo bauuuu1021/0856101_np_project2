@@ -38,6 +38,7 @@ typedef struct client_info {
     long cmd_count;
     map<int, pipe_info> delay_pipe_table;
     map<user_id, inbox_info> inbox;
+    map<string, string> env;
 } client_info;
 
 map<user_id, client_info> user_table;
@@ -99,6 +100,7 @@ void new_connection(int server) {
                 tmp.name = "(no name)"; 
                 tmp.delay_pipe_table.clear();
                 tmp.inbox.clear();
+                tmp.env.insert(pair<string, string>("PATH", "bin:."));
                 user_table.insert(pair<user_id, client_info>(i, tmp));
 
                 break; 

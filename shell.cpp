@@ -34,7 +34,7 @@ void printenv(string cmd) {
         printf("%s\n", ret);
 }
 
-void setenv(string cmd) {
+pair<string, string> setenv(string cmd) {
 
     try {
         string delimiter = " ";
@@ -42,10 +42,12 @@ void setenv(string cmd) {
         string env_name = cmd.substr(0, cmd.find(delimiter));
         string env_value = cmd.substr(cmd.find(delimiter)+1, string::npos);
         setenv(env_name.c_str(), env_value.c_str(), !0);
+
+        return pair<string, string>(env_name, env_value);
     }
     catch (const std::exception& e) {
         cerr << "[setenv] error:\n" << e.what() << "\n";
-        return;
+        return pair<string, string>("", "");
     }
 }
 

@@ -27,6 +27,7 @@ typedef struct client_info {
     long cmd_count;
     map<int, pipe_info> delay_pipe_table;
     map<user_id, inbox_info> inbox;
+    map<string, string> env;
 } client_info;
 
 extern int null_fd;
@@ -34,7 +35,7 @@ extern long cmd_count;
 extern map<int, pipe_info> delay_pipe_table;
 extern int client_fd[MAX_CLIENTS];
 extern void printenv(string cmd);
-extern void setenv(string cmd);
+extern pair<string, string> setenv(string cmd);
 extern string skip_lead_space(string str);
 extern void execute_cmd(string cmd);
 extern map<user_id, client_info> user_table;
@@ -195,6 +196,11 @@ void shell(user_id sender_id, string cmd) {
             cmd = cmd.substr(0, i);
     cmd = skip_lead_space(cmd);
 
+    // Environment variables setup
+    for (const auto &env: it->second.env) {
+        setenv(env.first.c_str(), env.second.c_str(), !0);
+    }
+
     // TODO: Check if pipe to other client is needed  
     int old_stdin = dup(STDIN_FILENO);
     int old_stdout = dup(STDOUT_FILENO);
@@ -223,10 +229,22 @@ void shell(user_id sender_id, string cmd) {
         dup2(old_stdout, STDOUT_FILENO);
         dup2(old_stderr, STDERR_FILENO);
 
+        // Environment variables clear up
+        for (const auto &env: it->second.env) {
+            unsetenv(env.first.c_str());
+        }
+
         return;
     }
     else if (!cmd.compare(0, 6, "setenv")) {
-        setenv(cmd);
+        auto tmp_env = setenv(cmd);
+        if (it->second.env.find(tmp_env.first) != it->second.env.end()) {
+            it->second.env.find(tmp_env.first)->second = tmp_env.second;
+        }
+        else {
+            it->second.env.insert(tmp_env);
+        }
+        
         it->second.cmd_count++;
     }
     else if (!cmd.compare(0, 3, "who")) {
@@ -268,4 +286,9 @@ void shell(user_id sender_id, string cmd) {
     dup2(old_stdin, STDIN_FILENO);
     dup2(old_stdout, STDOUT_FILENO);
     dup2(old_stderr, STDERR_FILENO);
+
+    // Environment variables clear up
+    for (const auto &env: it->second.env) {
+        unsetenv(env.first.c_str());
+    }
 }
