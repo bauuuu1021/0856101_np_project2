@@ -89,7 +89,7 @@ void np_exec(string cmd) {
     arg[arg_cnt] = NULL;
 
     if (execvp(arg[0], arg) == -1) {
-        cerr << "Unknown command: [" << cmd << "].\n";
+        cerr << "Unknown command: [" << arg[0] << "].\n";
         exit(0);
     }
 

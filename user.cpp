@@ -90,8 +90,17 @@ void tell(user_id sender_id, user_id receiver_id, string msg) {
 }
 
 void rename(user_id sender_id, string name) {
+
+    // Check if the name existed
+    for (const auto& u: user_table) {
+        if (!u.second.name.compare(name)) {
+            cerr << "*** User '" + name + "' already exists. ***\n";
+            return;
+        }
+    }
+
     std::map<user_id, client_info>::iterator it = user_table.find(sender_id);
-    it->second.name = name = skip_lead_space(name);
+    it->second.name = name;
 
     struct sockaddr_in address;
     int addrlen = sizeof(address);
@@ -196,8 +205,10 @@ void shell(user_id sender_id, string cmd) {
     map<user_id, client_info>::iterator it = user_table.find(sender_id);
 
     for (auto i = 0; i < cmd.size(); i++)
-        if (cmd.at(i) == '\r')  // remove carriage return character
+        if (cmd.at(i) == '\r' || cmd.at(i) == '\n') {  // remove carriage return character
             cmd = cmd.substr(0, i);
+            break;
+        }
     cmd = skip_lead_space(cmd);
 
     // Environment variables setup
@@ -205,7 +216,7 @@ void shell(user_id sender_id, string cmd) {
         setenv(env.first.c_str(), env.second.c_str(), !0);
     }
 
-    // TODO: Check if pipe to other client is needed  
+    // User pipe handling  
     int old_stdin = dup(STDIN_FILENO);
     int old_stdout = dup(STDOUT_FILENO);
     int old_stderr = dup(STDERR_FILENO);
@@ -228,7 +239,6 @@ void shell(user_id sender_id, string cmd) {
         user_table.erase(it); 
         client_fd[sender_id] = 0; // Mark as 0 to reuse
 
-        // TODO: check if needed
         dup2(old_stdin, STDIN_FILENO);
         dup2(old_stdout, STDOUT_FILENO);
         dup2(old_stderr, STDERR_FILENO);
@@ -285,6 +295,7 @@ void shell(user_id sender_id, string cmd) {
         it->second.cmd_count++;
     }
 
+    dup2(client_fd[sender_id], STDOUT_FILENO);
     cout << "% " << flush;
 
     dup2(old_stdin, STDIN_FILENO);

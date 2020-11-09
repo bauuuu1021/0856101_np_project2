@@ -109,7 +109,7 @@ void new_connection(int server) {
 
         // Broadcast new connection information  
         string new_conn =   "*** User '(no name)' entered from " + string(inet_ntoa(address.sin_addr)) + \
-                             ":" + to_string(ntohs(address.sin_port)) + " ***\n";  
+                             ":" + to_string(ntohs(address.sin_port)) + ". ***\n";  
         broadcast(new_conn);
 
         // Send %
