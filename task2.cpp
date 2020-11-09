@@ -26,11 +26,16 @@ typedef struct pipe_info {
     int read_fd;
     int write_fd;
 } pipe_info;
+typedef struct inbox_info {
+    int pipe_read;
+    string cmd;
+} inbox_info;
 typedef struct client_info {
     int socket_fd;
     string name;
     long cmd_count;
     map<int, pipe_info> delay_pipe_table;
+    map<user_id, inbox_info> inbox;
 } client_info;
 
 map<user_id, client_info> user_table;
@@ -90,6 +95,7 @@ void new_connection(int server) {
                 tmp.socket_fd = client_fd[i] = new_socket;
                 tmp.name = "(no name)"; 
                 tmp.delay_pipe_table.clear();
+                tmp.inbox.clear();
                 user_table.insert(pair<user_id, client_info>(i, tmp));
 
                 break; 

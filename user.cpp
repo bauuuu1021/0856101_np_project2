@@ -17,11 +17,16 @@ typedef struct pipe_info {
     int read_fd;
     int write_fd;
 } pipe_info;
+typedef struct inbox_info {
+    int pipe_read;
+    string cmd;
+} inbox_info;
 typedef struct client_info {
     int socket_fd;
     string name;
     long cmd_count;
     map<int, pipe_info> delay_pipe_table;
+    map<user_id, inbox_info> inbox;
 } client_info;
 
 extern long cmd_count;
@@ -95,6 +100,77 @@ void rename(user_id sender_id, string name) {
     broadcast(msg);
 }
 
+string pipein_handler(string cmd, map<user_id, client_info>::iterator receiver) {
+    int pos;
+    string space_delimiter = " ", ret = string(cmd);
+
+    if ((pos = cmd.find("<")) != string::npos && cmd.compare(pos + 1, 1, " ")) {
+        ret = cmd.substr(0, pos);
+
+        string rv = cmd.substr(pos + 1);
+        pos = rv.find(space_delimiter);
+        rv = rv.substr(0, pos);
+        user_id sender_id = stoi(rv);
+
+        map<user_id, client_info>::iterator send = user_table.find(sender_id);
+        if (send != user_table.end()) {
+            if (receiver->second.inbox.find(sender_id) == receiver->second.inbox.end()) {
+                cerr << "no inbox\n";
+            }
+            else {
+                dup2(receiver->second.inbox.find(sender_id)->second.pipe_read, STDIN_FILENO);
+                close(receiver->second.inbox.find(sender_id)->second.pipe_read);
+            }
+            
+            string msg = "***  success  ***\n";
+            broadcast(msg);
+        }
+        else {
+            string msg = "*** Error: user #< > does not exist yet. ***\n";
+            cerr << msg;
+        }
+    }
+
+    return ret;
+}
+
+string pipeout_handler(string cmd, map<user_id, client_info>::iterator sender) {
+    int pos;
+    string space_delimiter = " ", ret = string(cmd);
+
+    if ((pos = cmd.find(">")) != string::npos && cmd.compare(pos + 1, 1, " ")) {
+        ret = cmd.substr(0, pos);
+
+        string rv = cmd.substr(pos + 1);
+        pos = rv.find(space_delimiter);
+        rv = rv.substr(0, pos);
+        user_id receiver_id = stoi(rv);
+
+        map<user_id, client_info>::iterator recv = user_table.find(receiver_id);
+        if (recv != user_table.end()) {
+            inbox_info new_msg;
+            int userpipe[2];
+            pipe(userpipe);
+            dup2(userpipe[1], STDOUT_FILENO);
+            close(userpipe[1]);
+            new_msg.cmd = cmd;
+            new_msg.pipe_read = userpipe[0];
+            recv->second.inbox.insert(pair<user_id, inbox_info>(sender->first, new_msg));
+
+            string msg = "*** " + sender->second.name + " (#" + to_string(sender->first) +
+                        ") just piped '" + cmd + "' to " + recv->second.name + 
+                        " (#" + to_string(recv->first) +") ***\n";
+            broadcast(msg);
+        }
+        else {
+            string msg = "*** Error: user #<" + to_string(recv->first) + "> does not exist yet. ***\n";
+            cerr << msg;
+        }
+    }
+
+    return ret;
+}
+
 void shell(user_id sender_id, string cmd) {
 
     map<user_id, client_info>::iterator it = user_table.find(sender_id);
@@ -105,10 +181,15 @@ void shell(user_id sender_id, string cmd) {
     cmd = skip_lead_space(cmd);
 
     // TODO: Check if pipe to other client is needed  
+    int old_stdin = dup(STDIN_FILENO);
     int old_stdout = dup(STDOUT_FILENO);
     int old_stderr = dup(STDERR_FILENO);
+
     dup2(client_fd[sender_id], STDOUT_FILENO);
     dup2(client_fd[sender_id], STDERR_FILENO);
+
+    cmd = pipein_handler(cmd, it);
+    cmd = pipeout_handler(cmd, it);
 
     // Commands
     if (!cmd.compare(0, 8, "printenv")) {
@@ -123,6 +204,7 @@ void shell(user_id sender_id, string cmd) {
         client_fd[sender_id] = 0; // Mark as 0 to reuse
 
         // TODO: check if needed
+        dup2(old_stdin, STDIN_FILENO);
         dup2(old_stdout, STDOUT_FILENO);
         dup2(old_stderr, STDERR_FILENO);
 
@@ -168,6 +250,7 @@ void shell(user_id sender_id, string cmd) {
 
     cout << "% " << flush;
 
+    dup2(old_stdin, STDIN_FILENO);
     dup2(old_stdout, STDOUT_FILENO);
     dup2(old_stderr, STDERR_FILENO);
 }
