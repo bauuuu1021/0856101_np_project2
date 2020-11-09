@@ -31,6 +31,13 @@ int socket_setup(int port) {
         exit(EXIT_FAILURE); 
     } 
 
+    int opt;
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, 
+                                                  &opt, sizeof(opt))) { 
+        perror("setsockopt"); 
+        exit(EXIT_FAILURE); 
+    } 
+
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) { 
         perror("bind failed"); 
         exit(EXIT_FAILURE); 
