@@ -14,6 +14,8 @@
 #include <algorithm>
 #include <string>
 #include <map>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #define MAX_CLIENTS 30
 #define star_divider "****************************************\n"
@@ -41,6 +43,7 @@ typedef struct client_info {
 map<user_id, client_info> user_table;
 fd_set readfds;
 int client_fd[MAX_CLIENTS] = {0};
+int null_fd;
 
 extern void shell(user_id sender, string cmd);
 extern void broadcast(string msg);
@@ -106,7 +109,7 @@ void new_connection(int server) {
         string new_conn =   "*** User '(no name)' entered from " + string(inet_ntoa(address.sin_addr)) + \
                              ":" + to_string(ntohs(address.sin_port)) + " ***\n";  
         broadcast(new_conn);
-        
+
         // Send %
         send(new_socket, "% ", 2, 0);
     }
@@ -117,6 +120,7 @@ void client_query() {
     struct sockaddr_in address;
     int valread, addrlen = sizeof(address);  		
     char buffer[1024];
+    null_fd = open("/dev/null", 0666);
 
     for (user_id id = 0; id < MAX_CLIENTS; id++) {
 

@@ -29,6 +29,7 @@ typedef struct client_info {
     map<user_id, inbox_info> inbox;
 } client_info;
 
+extern int null_fd;
 extern long cmd_count;
 extern map<int, pipe_info> delay_pipe_table;
 extern int client_fd[MAX_CLIENTS];
@@ -107,27 +108,33 @@ string pipein_handler(string cmd, map<user_id, client_info>::iterator receiver) 
     if ((pos = cmd.find("<")) != string::npos && cmd.compare(pos + 1, 1, " ")) {
         ret = cmd.substr(0, pos);
 
-        string rv = cmd.substr(pos + 1);
-        pos = rv.find(space_delimiter);
-        rv = rv.substr(0, pos);
-        user_id sender_id = stoi(rv);
+        string sd = cmd.substr(pos + 1);
+        pos = sd.find(space_delimiter);
+        sd = sd.substr(0, pos);
+        user_id sender_id = stoi(sd);
 
         map<user_id, client_info>::iterator send = user_table.find(sender_id);
         if (send != user_table.end()) {
             if (receiver->second.inbox.find(sender_id) == receiver->second.inbox.end()) {
-                cerr << "no inbox\n";
+                dup2(null_fd, STDIN_FILENO);
+                cerr << "*** Error: the pipe #<" + to_string(sender_id) + ">->#<" + 
+                    to_string(receiver->first) + "> does not exist yet. ***\n";
             }
             else {
                 dup2(receiver->second.inbox.find(sender_id)->second.pipe_read, STDIN_FILENO);
                 close(receiver->second.inbox.find(sender_id)->second.pipe_read);
+
+
+                string msg = "*** <" + send->second.name + "> (#<" + to_string(send->first) + 
+                    ">) just received from <" + receiver->second.name + 
+                    "> (#<" + to_string(receiver->first) + ">) by '" + 
+                    receiver->second.inbox.find(sender_id)->second.cmd + "' ***\n";
+                broadcast(msg);
             }
-            
-            string msg = "***  success  ***\n";
-            broadcast(msg);
         }
         else {
-            string msg = "*** Error: user #< > does not exist yet. ***\n";
-            cerr << msg;
+            dup2(null_fd, STDIN_FILENO);
+            cerr << "*** Error: user #<" + to_string(sender_id) + "> does not exist yet. ***\n";
         }
     }
 
@@ -158,13 +165,13 @@ string pipeout_handler(string cmd, map<user_id, client_info>::iterator sender) {
             recv->second.inbox.insert(pair<user_id, inbox_info>(sender->first, new_msg));
 
             string msg = "*** " + sender->second.name + " (#" + to_string(sender->first) +
-                        ") just piped '" + cmd + "' to " + recv->second.name + 
-                        " (#" + to_string(recv->first) +") ***\n";
+                ") just piped '" + cmd + "' to " + recv->second.name + 
+                " (#" + to_string(recv->first) +") ***\n";
             broadcast(msg);
         }
         else {
-            string msg = "*** Error: user #<" + to_string(recv->first) + "> does not exist yet. ***\n";
-            cerr << msg;
+            dup2(null_fd, STDOUT_FILENO);
+            cerr << "*** Error: user #<" + to_string(receiver_id) + "> does not exist yet. ***\n";   
         }
     }
 
@@ -241,7 +248,7 @@ void shell(user_id sender_id, string cmd) {
     else {
         cmd_count = it->second.cmd_count;
         delay_pipe_table = it->second.delay_pipe_table;
-        
+
         execute_cmd(cmd);
 
         it->second.delay_pipe_table = delay_pipe_table;
