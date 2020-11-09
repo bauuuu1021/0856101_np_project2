@@ -17,7 +17,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#define MAX_CLIENTS 30
+#define MAX_CLIENTS 31
 #define star_divider "****************************************\n"
 #define welcome_msg star_divider "** Welcome to the information server. **\n" star_divider
 
@@ -28,16 +28,12 @@ typedef struct pipe_info {
     int read_fd;
     int write_fd;
 } pipe_info;
-typedef struct inbox_info {
-    int pipe_read;
-    string cmd;
-} inbox_info;
 typedef struct client_info {
     int socket_fd;
     string name;
     long cmd_count;
     map<int, pipe_info> delay_pipe_table;
-    map<user_id, inbox_info> inbox;
+    map<user_id, int> inbox;
     map<string, string> env;
 } client_info;
 
@@ -63,12 +59,19 @@ int socket_setup(int port) {
         exit(EXIT_FAILURE); 
     } 
 
+    int opt;
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, 
+                                                  &opt, sizeof(opt))) { 
+        perror("setsockopt"); 
+        exit(EXIT_FAILURE); 
+    } 
+
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) { 
         perror("bind failed"); 
         exit(EXIT_FAILURE); 
     } 
 
-    if (listen(server_fd, 30) < 0) { 
+    if (listen(server_fd, 60) < 0) { 
         perror("listen"); 
         exit(EXIT_FAILURE); 
     }
@@ -93,7 +96,7 @@ void new_connection(int server) {
         } 
 
         // Add new socket to array of sockets 
-        for (int i = 0; i < MAX_CLIENTS; i++) { 
+        for (user_id i = 1; i < MAX_CLIENTS; i++) { 
             if (!client_fd[i]) { // the slot is empty
                 client_info tmp;
                 tmp.socket_fd = client_fd[i] = new_socket;
@@ -124,7 +127,7 @@ void client_query() {
     char buffer[1024];
     null_fd = open("/dev/null", 0666);
 
-    for (user_id id = 0; id < MAX_CLIENTS; id++) {
+    for (user_id id = 1; id < MAX_CLIENTS; id++) {
 
         if (FD_ISSET(client_fd[id], &readfds)) { 
 
@@ -165,7 +168,7 @@ int main(int argc , char **argv) {
         max_sd = server_fd; 
 
         // Add client sockets into read list
-        for (user_id id = 0 ; id < MAX_CLIENTS; id++) {           
+        for (user_id id = 1 ; id < MAX_CLIENTS; id++) {           
             if (client_fd[id] > 0)
                 FD_SET(client_fd[id], &readfds);
             max_sd = max(client_fd[id], max_sd); 

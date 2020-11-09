@@ -8,7 +8,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 
-#define MAX_CLIENTS 30
+#define MAX_CLIENTS 31
 
 using namespace std;
 
@@ -17,18 +17,16 @@ typedef struct pipe_info {
     int read_fd;
     int write_fd;
 } pipe_info;
-typedef struct inbox_info {
-    int pipe_read;
-    string cmd;
-} inbox_info;
 typedef struct client_info {
     int socket_fd;
     string name;
     long cmd_count;
     map<int, pipe_info> delay_pipe_table;
-    map<user_id, inbox_info> inbox;
+    map<user_id, int> inbox;
     map<string, string> env;
 } client_info;
+
+string backup_cmd;
 
 extern int null_fd;
 extern long cmd_count;
@@ -133,13 +131,13 @@ string pipein_handler(string cmd, map<user_id, client_info>::iterator receiver) 
                     to_string(receiver->first) + " does not exist yet. ***\n";
             }
             else {
-                dup2(receiver->second.inbox.find(sender_id)->second.pipe_read, STDIN_FILENO);
-                close(receiver->second.inbox.find(sender_id)->second.pipe_read);
+                dup2(receiver->second.inbox.find(sender_id)->second, STDIN_FILENO);
+                close(receiver->second.inbox.find(sender_id)->second);
 
-                string msg = "*** " + send->second.name + " (#" + to_string(send->first) + 
-                    ") just received from " + receiver->second.name + 
-                    " (#" + to_string(receiver->first) + ") by '" + 
-                    receiver->second.inbox.find(sender_id)->second.cmd + "' ***\n";
+                string msg = "*** " + receiver->second.name + " (#" + to_string(receiver->first) + 
+                    ") just received from " + send->second.name + 
+                    " (#" + to_string(send->first) + ") by '" + 
+                    backup_cmd + "' ***\n";
                 broadcast(msg);
                 receiver->second.inbox.erase(sender_id);
             }
@@ -177,17 +175,14 @@ string pipeout_handler(string cmd, map<user_id, client_info>::iterator sender) {
                 return ret;
             }
 
-            inbox_info new_msg;
             int userpipe[2];
             pipe(userpipe);
             dup2(userpipe[1], STDOUT_FILENO);
             close(userpipe[1]);
-            new_msg.cmd = cmd;
-            new_msg.pipe_read = userpipe[0];
-            recv->second.inbox.insert(pair<user_id, inbox_info>(sender->first, new_msg));
+            recv->second.inbox.insert(pair<user_id, int>(sender->first, userpipe[0]));
 
             string msg = "*** " + sender->second.name + " (#" + to_string(sender->first) +
-                ") just piped '" + cmd + "' to " + recv->second.name + 
+                ") just piped '" + backup_cmd + "' to " + recv->second.name + 
                 " (#" + to_string(recv->first) +") ***\n";
             broadcast(msg);
         }
@@ -209,7 +204,7 @@ void shell(user_id sender_id, string cmd) {
             cmd = cmd.substr(0, i);
             break;
         }
-    cmd = skip_lead_space(cmd);
+    backup_cmd = cmd = skip_lead_space(cmd);
 
     // Environment variables setup
     for (const auto &env: it->second.env) {
