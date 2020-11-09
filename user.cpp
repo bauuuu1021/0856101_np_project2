@@ -124,12 +124,12 @@ string pipein_handler(string cmd, map<user_id, client_info>::iterator receiver) 
                 dup2(receiver->second.inbox.find(sender_id)->second.pipe_read, STDIN_FILENO);
                 close(receiver->second.inbox.find(sender_id)->second.pipe_read);
 
-
                 string msg = "*** <" + send->second.name + "> (#<" + to_string(send->first) + 
                     ">) just received from <" + receiver->second.name + 
                     "> (#<" + to_string(receiver->first) + ">) by '" + 
                     receiver->second.inbox.find(sender_id)->second.cmd + "' ***\n";
                 broadcast(msg);
+                receiver->second.inbox.erase(sender_id);
             }
         }
         else {
@@ -155,6 +155,14 @@ string pipeout_handler(string cmd, map<user_id, client_info>::iterator sender) {
 
         map<user_id, client_info>::iterator recv = user_table.find(receiver_id);
         if (recv != user_table.end()) {
+            if (recv->second.inbox.find(sender->first) != recv->second.inbox.end()) {
+                dup2(null_fd, STDOUT_FILENO);
+                cerr << "*** Error: the pipe #<" + to_string(sender->first) + ">->#<" +
+                to_string(receiver_id) + "> already exists. ***\n";
+                
+                return ret;
+            }
+
             inbox_info new_msg;
             int userpipe[2];
             pipe(userpipe);
