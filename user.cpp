@@ -107,10 +107,12 @@ string pipein_handler(string cmd, map<user_id, client_info>::iterator receiver) 
     string space_delimiter = " ", ret = string(cmd);
 
     if ((pos = cmd.find("<")) != string::npos && cmd.compare(pos + 1, 1, " ")) {
+        
         ret = cmd.substr(0, pos);
-
         string sd = cmd.substr(pos + 1);
         pos = sd.find(space_delimiter);
+        if (pos != string::npos)
+            ret = ret + sd.substr(pos);
         sd = sd.substr(0, pos);
         user_id sender_id = stoi(sd);
 
@@ -151,6 +153,8 @@ string pipeout_handler(string cmd, map<user_id, client_info>::iterator sender) {
 
         string rv = cmd.substr(pos + 1);
         pos = rv.find(space_delimiter);
+        if (pos != string::npos)
+            ret = ret + rv.substr(pos);
         rv = rv.substr(0, pos);
         user_id receiver_id = stoi(rv);
 
