@@ -120,16 +120,16 @@ string pipein_handler(string cmd, map<user_id, client_info>::iterator receiver) 
         if (send != user_table.end()) {
             if (receiver->second.inbox.find(sender_id) == receiver->second.inbox.end()) {
                 dup2(null_fd, STDIN_FILENO);
-                cerr << "*** Error: the pipe #<" + to_string(sender_id) + ">->#<" + 
-                    to_string(receiver->first) + "> does not exist yet. ***\n";
+                cerr << "*** Error: the pipe #" + to_string(sender_id) + "->#" + 
+                    to_string(receiver->first) + " does not exist yet. ***\n";
             }
             else {
                 dup2(receiver->second.inbox.find(sender_id)->second.pipe_read, STDIN_FILENO);
                 close(receiver->second.inbox.find(sender_id)->second.pipe_read);
 
-                string msg = "*** <" + send->second.name + "> (#<" + to_string(send->first) + 
-                    ">) just received from <" + receiver->second.name + 
-                    "> (#<" + to_string(receiver->first) + ">) by '" + 
+                string msg = "*** " + send->second.name + " (#" + to_string(send->first) + 
+                    ") just received from " + receiver->second.name + 
+                    " (#" + to_string(receiver->first) + ") by '" + 
                     receiver->second.inbox.find(sender_id)->second.cmd + "' ***\n";
                 broadcast(msg);
                 receiver->second.inbox.erase(sender_id);
@@ -137,7 +137,7 @@ string pipein_handler(string cmd, map<user_id, client_info>::iterator receiver) 
         }
         else {
             dup2(null_fd, STDIN_FILENO);
-            cerr << "*** Error: user #<" + to_string(sender_id) + "> does not exist yet. ***\n";
+            cerr << "*** Error: user #" + to_string(sender_id) + " does not exist yet. ***\n";
         }
     }
 
@@ -162,8 +162,8 @@ string pipeout_handler(string cmd, map<user_id, client_info>::iterator sender) {
         if (recv != user_table.end()) {
             if (recv->second.inbox.find(sender->first) != recv->second.inbox.end()) {
                 dup2(null_fd, STDOUT_FILENO);
-                cerr << "*** Error: the pipe #<" + to_string(sender->first) + ">->#<" +
-                to_string(receiver_id) + "> already exists. ***\n";
+                cerr << "*** Error: the pipe #" + to_string(sender->first) + "->#" +
+                to_string(receiver_id) + " already exists. ***\n";
                 
                 return ret;
             }
@@ -184,7 +184,7 @@ string pipeout_handler(string cmd, map<user_id, client_info>::iterator sender) {
         }
         else {
             dup2(null_fd, STDOUT_FILENO);
-            cerr << "*** Error: user #<" + to_string(receiver_id) + "> does not exist yet. ***\n";   
+            cerr << "*** Error: user #" + to_string(receiver_id) + " does not exist yet. ***\n";   
         }
     }
 
